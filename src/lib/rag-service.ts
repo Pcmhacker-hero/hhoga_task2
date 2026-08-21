@@ -2,8 +2,7 @@
 // server-function compatibility wrapper; browser code never imports provider keys.
 
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import embeddingsData from '../../data/embeddings.json'
 
 import { getVectorStore, type SearchResult, type VectorRecord } from './vector-store'
 import {
@@ -57,8 +56,6 @@ function getGemini(): GoogleGenerativeAI {
   }
   return geminiClient
 }
-
-import embeddingsData from '../../data/embeddings.json'
 
 function ensureStoreLoaded(): void {
   const store = getVectorStore()

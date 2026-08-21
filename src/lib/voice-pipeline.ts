@@ -91,7 +91,7 @@ export class VoicePipeline {
     return this.status
   }
 
-  async startListening(): Promise<void> {
+  async startListening(language: 'hi' | 'en' | 'auto' = 'auto'): Promise<void> {
     this.cancel()
     const operationId = ++this.operationId
     this.abortController = new AbortController()
@@ -110,7 +110,7 @@ export class VoicePipeline {
       if (!this.isCurrent(operationId)) return
       this.sttSession = createSTTSession({
         token,
-        language: 'auto',
+        language,
         onPartialTranscript: (partial, latency) => {
           if (!this.isCurrent(operationId)) return
           this.sttFirstPartialMs ||= latency

@@ -1,35 +1,25 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Mic, Square, ShieldCheck, ShieldAlert, Quote, Languages, Send, Volume2 } from "lucide-react";
-import { DEMO_QUERIES, PIPELINE_STAGES, type DemoQuery, type Passage } from "@/lib/rag-demo";
+import { Mic, Square, ShieldCheck, ShieldAlert, Quote, Send, Volume2 } from "lucide-react";
+import { DEMO_QUERIES, PIPELINE_STAGES, type Passage } from "@/lib/rag-demo";
 import { cn } from "@/lib/utils";
 import { VoicePipeline, type PipelineStatus } from "@/lib/voice-pipeline";
 import type { RAGResponse } from "@/lib/harness";
 
 const BARS = Array.from({ length: 40 }, (_, i) => i);
 
-function Waveform({ active, audioLevels }: { active: boolean; audioLevels?: number[] }) {
+function Waveform({ active, audioLevels }: { active: boolean; audioLevels: number[] }) {
   return (
-    <div className="flex h-16 items-center justify-center gap-[3px]" aria-hidden>
+    <div className="flex h-12 w-full items-center justify-center gap-1">
       {BARS.map((i) => {
-        const level = audioLevels && audioLevels[i % audioLevels.length]
-          ? (audioLevels[i % audioLevels.length]! / 44) * 48
-          : 18 + ((i * 37) % 42);
+        const height = active ? audioLevels[i] ?? 4 : 4;
         return (
           <span
             key={i}
+            style={{ height: `${height}px` }}
             className={cn(
-              "w-[3px] rounded-full bg-primary/70 transition-all duration-150",
-              active ? "opacity-100" : "opacity-25",
+              "w-1 rounded-full transition-all duration-75",
+              active ? "bg-primary" : "bg-border-strong",
             )}
-            style={{
-              height: active ? `${Math.max(6, level)}px` : `${18 + ((i * 37) % 42)}px`,
-              animationName: active && !audioLevels ? "bar-dance" : "none",
-              animationDuration: `${520 + ((i * 53) % 460)}ms`,
-              animationTimingFunction: "ease-in-out",
-              animationIterationCount: "infinite",
-              animationDelay: `${(i % 12) * 40}ms`,
-              transform: active ? undefined : "scaleY(0.22)",
-            }}
           />
         );
       })}
@@ -38,26 +28,31 @@ function Waveform({ active, audioLevels }: { active: boolean; audioLevels?: numb
 }
 
 export function VoiceConsole({ onMetricsUpdate }: { onMetricsUpdate?: () => void }) {
-  const [queryIndex, setQueryIndex] = useState(0);
   const [pipelineState, setPipelineState] = useState<PipelineStatus>("IDLE");
-  const [stageIndex, setStageIndex] = useState(-1);
   const [transcript, setTranscript] = useState("");
   const [answer, setAnswer] = useState("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [customText, setCustomText] = useState("");
   const [passages, setPassages] = useState<Passage[]>([]);
-  const [groundingScore, setGroundingScore] = useState<number>(0.94);
+  const [stageIndex, setStageIndex] = useState(-1);
+  const [groundingScore, setGroundingScore] = useState(0.92);
   const [isRefused, setIsRefused] = useState(false);
-  const [verdictNote, setVerdictNote] = useState("Awaiting voice or text query");
-  const [stageTimings, setStageTimings] = useState<Record<string, number>>({});
-  const [audioLevels, setAudioLevels] = useState<number[]>(new Array(40).fill(4));
+  const [verdictNote, setVerdictNote] = useState("Awaiting voice input or text query...");
+  const [customText, setCustomText] = useState("");
+  const [queryIndex, setQueryIndex] = useState(0);
+  const [audioLevels, setAudioLevels] = useState<number[]>(() => Array.from({ length: 40 }, () => 4));
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [stageTimings, setStageTimings] = useState<Record<string, number>>({
+    capture: 12,
+    stt: 58,
+    embed: 21,
+    retrieve: 6,
+    generate: 39,
+    guard: 4,
+  });
 
   const pipelineRef = useRef<VoicePipeline | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
-
-  const query: DemoQuery = DEMO_QUERIES[queryIndex] ?? DEMO_QUERIES[0]!;
 
   // Initialize real Voice Pipeline
   useEffect(() => {
@@ -188,6 +183,8 @@ export function VoiceConsole({ onMetricsUpdate }: { onMetricsUpdate?: () => void
     };
   }, [listening]);
 
+  const [asrLanguage, setAsrLanguage] = useState<'auto' | 'hi' | 'en'>('auto');
+
   const handleStartCapture = useCallback(async () => {
     setAnswer("");
     setPassages([]);
@@ -195,8 +192,8 @@ export function VoiceConsole({ onMetricsUpdate }: { onMetricsUpdate?: () => void
     setTranscript("");
     setIsRefused(false);
     setVerdictNote("Listening for voice input...");
-    await pipelineRef.current?.startListening();
-  }, []);
+    await pipelineRef.current?.startListening(asrLanguage);
+  }, [asrLanguage]);
 
   const handleStopCapture = useCallback(async () => {
     await pipelineRef.current?.stopListeningAndExecute();
@@ -230,10 +227,35 @@ export function VoiceConsole({ onMetricsUpdate }: { onMetricsUpdate?: () => void
         <div className="halo pointer-events-none absolute inset-x-0 -top-24 h-64 opacity-40" />
         <div className="relative flex items-center justify-between">
           <span className="tick-label">01 · Voice capture</span>
-          <span className="tick-label flex items-center gap-1.5">
-            <Languages className="size-3.5" />
-            {listening ? "Live ASR" : query.language}
-          </span>
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background/50 p-0.5">
+            <button
+              onClick={() => setAsrLanguage('auto')}
+              className={cn(
+                "rounded px-2 py-0.5 font-mono text-[11px] transition-colors",
+                asrLanguage === 'auto' ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Auto
+            </button>
+            <button
+              onClick={() => setAsrLanguage('hi')}
+              className={cn(
+                "rounded px-2 py-0.5 font-mono text-[11px] transition-colors",
+                asrLanguage === 'hi' ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              हिन्दी
+            </button>
+            <button
+              onClick={() => setAsrLanguage('en')}
+              className={cn(
+                "rounded px-2 py-0.5 font-mono text-[11px] transition-colors",
+                asrLanguage === 'en' ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              EN
+            </button>
+          </div>
         </div>
 
         <div className="relative mt-8 flex flex-col items-center">

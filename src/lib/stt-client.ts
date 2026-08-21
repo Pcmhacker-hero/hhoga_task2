@@ -21,22 +21,6 @@ export interface STTSession {
 
 const ELEVENLABS_STT_WS = 'wss://api.elevenlabs.io/v1/speech-to-text/realtime'
 
-type SpeechRecognitionConstructor = new () => {
-  continuous: boolean
-  interimResults: boolean
-  lang: string
-  onresult: (event: SpeechRecognitionEventLike) => void
-  onerror: () => void
-  onend: () => void
-  start: () => void
-  stop: () => void
-  abort: () => void
-}
-
-interface SpeechRecognitionEventLike {
-  resultIndex: number
-  results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>
-}
 
 export function createSTTSession(config: STTConfig): STTSession {
   const startTime = performance.now()
@@ -46,22 +30,24 @@ export function createSTTSession(config: STTConfig): STTSession {
   let partialTranscript = ''
   let detectedLanguage: string | undefined
   let ws: WebSocket | null = null
-  let nativeRecognition: InstanceType<SpeechRecognitionConstructor> | null = null
+  let nativeRecognition: any = null
   let resolveStop: ((text: string) => void) | null = null
   let destroyed = false
   const pendingAudio: ArrayBuffer[] = []
 
   const speechConstructor = typeof window !== 'undefined'
-    ? ((window as unknown as { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition
-      ?? (window as unknown as { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition)
+    ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
     : undefined
 
-  const finishStop = () => {
+  const finishStop = (overrideText?: string) => {
     if (resolveStop) {
       const resolve = resolveStop
       resolveStop = null
       finalTime = Math.round(performance.now() - startTime)
-      resolve(finalTranscript || partialTranscript)
+      const textToReturn = overrideText !== undefined
+        ? overrideText
+        : (finalTranscript + ' ' + partialTranscript).trim()
+      resolve(textToReturn)
     }
     config.onStateChange?.('stopped')
   }
@@ -76,7 +62,7 @@ export function createSTTSession(config: STTConfig): STTSession {
 
   const markFinal = (text: string, language?: string) => {
     if (!text) return
-    finalTranscript += `${finalTranscript ? ' ' : ''}${text}`
+    finalTranscript = text
     partialTranscript = ''
     detectedLanguage = language ?? detectedLanguage
     finalTime = Math.round(performance.now() - startTime)
@@ -89,22 +75,61 @@ export function createSTTSession(config: STTConfig): STTSession {
       nativeRecognition = new speechConstructor()
       nativeRecognition.continuous = true
       nativeRecognition.interimResults = true
-      nativeRecognition.lang = config.language === 'hi' ? 'hi-IN' : 'en-IN'
-      nativeRecognition.onresult = (event) => {
-        let interim = ''
-        for (let index = event.resultIndex; index < event.results.length; index++) {
-          const result = event.results[index]
-          const text = result?.[0]?.transcript ?? ''
-          if (result?.isFinal) markFinal(text, config.language)
-          else interim += text
-        }
-        if (interim) markPartial(interim)
+      nativeRecognition.maxAlternatives = 1
+
+      // Set recognition language
+      if (config.language === 'hi') {
+        nativeRecognition.lang = 'hi-IN'
+      } else if (config.language === 'en') {
+        nativeRecognition.lang = 'en-IN'
+      } else {
+        // Auto: use user browser preference or multilingual
+        nativeRecognition.lang = navigator?.language || 'hi-IN'
       }
-      nativeRecognition.onerror = () => config.onError?.(new Error('Browser speech recognition failed'))
-      nativeRecognition.onend = finishStop
+
+      nativeRecognition.onresult = (event: any) => {
+        let fullFinal = ''
+        let fullInterim = ''
+        for (let i = 0; i < event.results.length; i++) {
+          const item = event.results[i]
+          const transcript = item?.[0]?.transcript ?? ''
+          if (item?.isFinal) {
+            fullFinal += (fullFinal ? ' ' : '') + transcript
+          } else {
+            fullInterim += (fullInterim ? ' ' : '') + transcript
+          }
+        }
+        if (fullFinal.trim()) {
+          finalTranscript = fullFinal.trim()
+        }
+        partialTranscript = fullInterim.trim()
+        const combined = (finalTranscript + ' ' + partialTranscript).trim()
+        if (combined) {
+          markPartial(combined)
+        }
+      }
+
+      nativeRecognition.onerror = (event: any) => {
+        console.warn('Speech recognition notice:', event?.error)
+      }
+
+      nativeRecognition.onend = () => {
+        if (!destroyed && !resolveStop) {
+          // If stopped prematurely without user action, restart if still active
+          try {
+            nativeRecognition?.start()
+          } catch {
+            finishStop()
+          }
+        } else {
+          finishStop()
+        }
+      }
+
       nativeRecognition.start()
       config.onStateChange?.('listening')
-    } catch {
+    } catch (err) {
+      console.warn('Native speech recognition startup failed:', err)
       config.onError?.(new Error('Browser speech recognition is unavailable'))
     }
   }
@@ -135,7 +160,6 @@ export function createSTTSession(config: STTConfig): STTSession {
       }
       ws.onerror = () => {
         if (!destroyed) {
-          config.onError?.(new Error('Cloud speech recognition is unavailable; using browser fallback when available'))
           startNativeFallback()
         }
       }
@@ -165,18 +189,28 @@ export function createSTTSession(config: STTConfig): STTSession {
       else if (ws?.readyState === WebSocket.CONNECTING && pendingAudio.length < 8) pendingAudio.push(chunk)
     },
     stop() {
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
+        const text = (finalTranscript + ' ' + partialTranscript).trim()
         resolveStop = resolve
         if (nativeRecognition) {
-          try { nativeRecognition.stop() } catch { finishStop() }
-          return
+          try {
+            nativeRecognition.stop()
+          } catch {
+            /* noop */
+          }
         }
         if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ message_type: 'input_audio_chunk', audio_base_64: '', commit: true }))
-          window.setTimeout(() => ws?.close(), 350)
-          return
+          try {
+            ws.send(JSON.stringify({ message_type: 'input_audio_chunk', audio_base_64: '', commit: true }))
+            setTimeout(() => ws?.close(), 200)
+          } catch {
+            /* noop */
+          }
         }
-        window.setTimeout(finishStop, 0)
+        // Guarantee resolution within 250ms
+        setTimeout(() => {
+          finishStop(text)
+        }, 250)
       })
     },
     destroy() {
