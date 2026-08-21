@@ -4,7 +4,14 @@ import { streamRAGQuery, type RAGStreamEvent } from '../lib/rag-service'
 
 function sameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin')
-  return !origin || origin === new URL(request.url).origin
+  if (!origin) return true
+  try {
+    const originHost = new URL(origin).host
+    const requestHost = new URL(request.url).host
+    return originHost === requestHost || origin.includes('vercel.app') || origin.includes('localhost')
+  } catch {
+    return true
+  }
 }
 
 function encodeEvent(encoder: TextEncoder, event: RAGStreamEvent): Uint8Array {

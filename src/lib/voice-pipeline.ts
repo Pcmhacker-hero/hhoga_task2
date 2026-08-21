@@ -184,7 +184,7 @@ export class VoicePipeline {
       // Token creation and the RAG retrieval run concurrently. TTS only receives
       // complete, server-grounded sentences, never raw individual LLM tokens.
       this.ttsRequestStartTime = performance.now()
-      const ttsReady = this.ttsPlayer.startStreaming(signal)
+      const ttsReady = this.ttsPlayer.startStreaming(signal).catch(() => {})
       const streamResponse = await fetch('/api/rag/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
@@ -203,7 +203,7 @@ export class VoicePipeline {
         const event = JSON.parse(dataLine.slice(5).trim()) as { type?: string; text?: string; response?: RAGResponse; message?: string }
         if (event.type === 'sentence' && event.text) {
           this.callbacks.onAssistantTextDelta(event.text)
-          await ttsReady
+          try { await ttsReady } catch { /* noop */ }
           if (this.isCurrent(operationId)) this.ttsPlayer.pushText(event.text)
         } else if (event.type === 'complete' && event.response) {
           response = event.response
@@ -226,8 +226,12 @@ export class VoicePipeline {
       }
       if (pending.trim()) await handleEvent(pending)
       if (!this.isCurrent(operationId)) return
-      await ttsReady
-      await this.ttsPlayer.endStream()
+      try {
+        await ttsReady
+        await this.ttsPlayer.endStream()
+      } catch {
+        /* TTS cleanup shouldn't block */
+      }
       const finalResponse = response as RAGResponse | null
       if (!finalResponse) throw new Error('Answer stream completed without a response')
 

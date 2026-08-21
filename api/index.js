@@ -40,12 +40,19 @@ export default async function handler(req, res) {
       res.setHeader(key, value)
     })
 
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders()
+    }
+
     if (webResponse.body) {
       const reader = webResponse.body.getReader()
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
         res.write(value)
+        if (typeof res.flush === 'function') {
+          res.flush()
+        }
       }
       res.end()
     } else {
