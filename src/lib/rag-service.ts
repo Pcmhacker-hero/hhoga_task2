@@ -58,16 +58,12 @@ function getGemini(): GoogleGenerativeAI {
   return geminiClient
 }
 
+import embeddingsData from '../../data/embeddings.json'
+
 function ensureStoreLoaded(): void {
-  const dataPath = join(process.cwd(), 'data', 'embeddings.json')
-  if (!existsSync(dataPath)) {
-    storeLoaded = true
-    return
-  }
   const store = getVectorStore()
-  const records: VectorRecord[] = JSON.parse(readFileSync(dataPath, 'utf-8'))
-  if (storeLoaded && store.size === records.length) return
-  store.load(records)
+  if (storeLoaded && store.size > 0) return
+  store.load(embeddingsData as VectorRecord[])
   storeLoaded = true
 }
 
@@ -322,9 +318,9 @@ export async function* streamRAGQuery(input: StreamInput, signal?: AbortSignal):
 
   const candidateModels = [
     process.env.GEMINI_MODEL,
-    'gemini-3.6-flash',
     'gemini-3.5-flash',
     'gemini-3.7-flash',
+    'gemini-3.6-flash',
   ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i)
 
   for (const candidateModel of candidateModels) {
