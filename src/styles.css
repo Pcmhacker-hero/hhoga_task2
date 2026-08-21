@@ -1,0 +1,359 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * VOX-RAG design system — obsidian console, signal-amber accent, mono telemetry.
+ * All colors are oklch semantic tokens. Never hardcode colors in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --radius: 0.5rem;
+
+  --background: oklch(0.16 0.008 260);
+  --foreground: oklch(0.95 0.006 90);
+
+  --surface: oklch(0.2 0.009 260);
+  --surface-raised: oklch(0.235 0.01 260);
+
+  --card: oklch(0.2 0.009 260);
+  --card-foreground: oklch(0.95 0.006 90);
+  --popover: oklch(0.21 0.009 260);
+  --popover-foreground: oklch(0.95 0.006 90);
+
+  --primary: oklch(0.79 0.155 72);
+  --primary-foreground: oklch(0.2 0.03 60);
+  --primary-glow: oklch(0.87 0.13 88);
+
+  --secondary: oklch(0.27 0.011 260);
+  --secondary-foreground: oklch(0.93 0.006 90);
+
+  --muted: oklch(0.26 0.01 260);
+  --muted-foreground: oklch(0.68 0.012 260);
+
+  --accent: oklch(0.72 0.11 195);
+  --accent-foreground: oklch(0.18 0.02 200);
+
+  --destructive: oklch(0.62 0.2 22);
+  --destructive-foreground: oklch(0.97 0.01 20);
+  --success: oklch(0.75 0.15 155);
+  --success-foreground: oklch(0.18 0.03 155);
+  --warning: oklch(0.8 0.14 82);
+  --warning-foreground: oklch(0.2 0.03 82);
+
+  --border: oklch(0.3 0.01 260);
+  --border-strong: oklch(0.4 0.012 260);
+  --input: oklch(0.3 0.01 260);
+  --ring: oklch(0.79 0.155 72);
+
+  --chart-1: oklch(0.79 0.155 72);
+  --chart-2: oklch(0.72 0.11 195);
+  --chart-3: oklch(0.75 0.15 155);
+  --chart-4: oklch(0.68 0.12 300);
+  --chart-5: oklch(0.62 0.2 22);
+
+  --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-glow));
+  --gradient-surface: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--surface-raised) 92%, var(--primary) 8%),
+    var(--surface)
+  );
+  --gradient-halo: radial-gradient(
+    circle at 50% 40%,
+    color-mix(in oklab, var(--primary) 30%, transparent),
+    transparent 65%
+  );
+  --shadow-elegant: 0 24px 60px -28px color-mix(in oklab, oklch(0 0 0) 85%, transparent);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--primary) 26%, transparent),
+    0 18px 50px -20px color-mix(in oklab, var(--primary) 45%, transparent);
+
+  /* Dimensional depth: bevelled top light, seated bottom shadow */
+  --shadow-3d:
+    inset 0 1px 0 color-mix(in oklab, oklch(1 0 0) 9%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, oklch(0 0 0) 45%, transparent),
+    0 1px 1px color-mix(in oklab, oklch(0 0 0) 35%, transparent),
+    0 8px 16px -8px color-mix(in oklab, oklch(0 0 0) 60%, transparent),
+    0 32px 64px -28px color-mix(in oklab, oklch(0 0 0) 85%, transparent);
+  --shadow-3d-hover:
+    inset 0 1px 0 color-mix(in oklab, oklch(1 0 0) 14%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, oklch(0 0 0) 50%, transparent),
+    0 2px 2px color-mix(in oklab, oklch(0 0 0) 35%, transparent),
+    0 18px 30px -12px color-mix(in oklab, oklch(0 0 0) 62%, transparent),
+    0 46px 80px -34px color-mix(in oklab, var(--primary) 22%, oklch(0 0 0));
+  --shadow-inset-well:
+    inset 0 2px 5px color-mix(in oklab, oklch(0 0 0) 55%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, oklch(1 0 0) 6%, transparent);
+  --gradient-sheen: linear-gradient(
+    180deg,
+    color-mix(in oklab, oklch(1 0 0) 8%, transparent),
+    transparent 42%
+  );
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility surface-panel {
+  position: relative;
+  background-image: var(--gradient-sheen), var(--gradient-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-3d);
+  transition:
+    box-shadow 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 12%;
+    top: -1px;
+    height: 1px;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--color-primary) 55%, transparent),
+      transparent
+    );
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &:hover {
+    box-shadow: var(--shadow-3d-hover);
+    transform: translateY(-2px);
+  }
+}
+
+/* Raised inner tiles: subtle extrusion inside a panel */
+@utility tile-3d {
+  background-image: var(--gradient-sheen);
+  background-color: color-mix(in oklab, var(--color-surface-raised) 70%, transparent);
+  border: 1px solid var(--color-border);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, oklch(1 0 0) 7%, transparent),
+    0 6px 14px -8px color-mix(in oklab, oklch(0 0 0) 70%, transparent);
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 300ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-border-strong);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, oklch(1 0 0) 12%, transparent),
+      0 14px 26px -12px color-mix(in oklab, oklch(0 0 0) 75%, transparent);
+  }
+}
+
+/* Recessed wells: transcript, tracks, tables */
+@utility well-3d {
+  background-color: color-mix(in oklab, var(--color-background) 75%, transparent);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-inset-well);
+}
+
+/* Perspective stage + gentle tilt for the hero console */
+@utility stage-3d {
+  perspective: 1600px;
+  perspective-origin: 50% 0%;
+}
+
+@utility tilt-3d {
+  transform-style: preserve-3d;
+  transform: rotateX(1.4deg);
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:hover {
+    transform: rotateX(0deg);
+  }
+}
+
+/* Spherical control: the mic orb */
+@utility orb-3d {
+  background-image:
+    radial-gradient(
+      circle at 34% 26%,
+      color-mix(in oklab, oklch(1 0 0) 62%, transparent),
+      transparent 46%
+    ),
+    radial-gradient(
+      circle at 68% 82%,
+      color-mix(in oklab, oklch(0 0 0) 38%, transparent),
+      transparent 55%
+    ),
+    var(--gradient-primary);
+  box-shadow:
+    inset 0 2px 6px color-mix(in oklab, oklch(1 0 0) 40%, transparent),
+    inset 0 -6px 14px color-mix(in oklab, oklch(0 0 0) 45%, transparent),
+    0 10px 22px -6px color-mix(in oklab, oklch(0 0 0) 70%, transparent),
+    0 26px 60px -18px color-mix(in oklab, var(--color-primary) 55%, transparent);
+}
+
+@utility text-gradient {
+  background-image: var(--gradient-primary);
+  background-clip: text;
+  color: transparent;
+}
+
+@utility grid-backdrop {
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--color-border) 65%, transparent) 1px, transparent 1px),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--color-border) 65%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 0%, oklch(0 0 0) 10%, transparent 72%);
+}
+
+@utility halo {
+  background-image: var(--gradient-halo);
+}
+
+@utility glow-ring {
+  box-shadow: var(--shadow-glow);
+}
+
+@utility tick-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes bar-dance {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes float-3d {
+  0%,
+  100% {
+    transform: translateZ(0) translateY(0);
+  }
+  50% {
+    transform: translateZ(18px) translateY(-6px);
+  }
+}
+
+@keyframes ring-orbit {
+  0% {
+    transform: translate(-50%, -50%) rotateZ(0deg);
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotateZ(360deg);
+    opacity: 0.35;
+  }
+}
+
+@utility float-3d {
+  animation: float-3d 9.6s ease-in-out infinite;
+}
+
+@utility ring-orbit {
+  animation: ring-orbit 22s linear infinite;
+  mask-image: conic-gradient(from 0deg, transparent 0deg, oklch(0 0 0) 120deg, transparent 300deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-3d,
+  .ring-orbit {
+    animation: none;
+  }
+}
